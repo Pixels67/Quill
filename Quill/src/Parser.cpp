@@ -46,15 +46,6 @@ namespace Ql {
                 return {ParseStruct(name)};
             }
 
-            if (Current().type == TokenType::LParen) {
-                return {ParseBuiltin(name)};
-            }
-
-            if (Current().type == TokenType::DoubleColon) {
-                Consume();
-                return {Enum{name, Consume().value}};
-            }
-
             assert(false);
         }
 
@@ -108,33 +99,6 @@ namespace Ql {
             if (Current().type == TokenType::Comma) {
                 Consume();
             } else if (Current().type == TokenType::RBrace) {
-                Consume();
-                break;
-            } else {
-                assert(false);
-            }
-        }
-
-        return node;
-    }
-
-    Builtin Parser::ParseBuiltin(const std::string &name) {
-        Builtin node;
-        node.name = name;
-
-        Expect(TokenType::LParen);
-        while (true) {
-            if (Current().type == TokenType::Integer) {
-                node.args.push_back({std::stoll(Consume().value)});
-            } else if (Current().type == TokenType::Float) {
-                node.args.push_back({std::stod(Consume().value)});
-            } else {
-                assert(false);
-            }
-
-            if (Current().type == TokenType::Comma) {
-                Consume();
-            } else if (Current().type == TokenType::RParen) {
                 Consume();
                 break;
             } else {

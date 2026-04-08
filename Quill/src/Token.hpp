@@ -12,15 +12,12 @@ namespace Ql {
         Bool,
         Null,
 
-        // Identifiers & keywords
+        // Identifiers
         Ident,
-        DoubleColon,
 
         // Brackets
         LBrace,
         RBrace,
-        LParen,
-        RParen,
         LBracket,
         RBracket,
 

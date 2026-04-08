@@ -26,7 +26,6 @@ namespace Ql {
 
         QuillValue     ParseValue();
         Struct  ParseStruct(const std::string &name);
-        Builtin ParseBuiltin(const std::string &name);
         Array   ParseArray();
         Map     ParseMap();
     };

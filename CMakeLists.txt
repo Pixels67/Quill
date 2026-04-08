@@ -8,7 +8,7 @@ add_library(
         Quill/src/Token.hpp
         Quill/src/Lexer.cpp
         Quill/src/Lexer.hpp
-        Quill/src/AstNode.hpp
+        Quill/include/QuillValue.hpp
         Quill/src/Parser.cpp
         Quill/src/Parser.hpp
         Quill/include/Quill.hpp

@@ -16,13 +16,6 @@ namespace Ql {
         bool operator==(const Struct &other) const;
     };
 
-    struct Builtin {
-        std::string             name;
-        std::vector<QuillValue> args;
-
-        bool operator==(const Builtin &other) const;
-    };
-
     struct Array {
         std::vector<QuillValue> elements;
 
@@ -35,19 +28,10 @@ namespace Ql {
         bool operator==(const Map &other) const;
     };
 
-    struct Enum {
-        std::string type;
-        std::string value;
-
-        bool operator==(const Enum &other) const = default;
-    };
-
     using AstValue = std::variant<
         Struct,
-        Builtin,
         Array,
         Map,
-        Enum,
         std::string,
         int64_t,
         double,
@@ -65,10 +49,6 @@ namespace Ql {
 
     inline bool Struct::operator==(const Struct &other) const {
         return name == other.name && fields == other.fields;
-    }
-
-    inline bool Builtin::operator==(const Builtin &other) const {
-        return name == other.name && args == other.args;
     }
 
     inline bool Array::operator==(const Array &other) const {

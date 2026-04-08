@@ -1,48 +1,14 @@
-#include <array>
-#include <iostream>
-#include <vector>
-
 #include "Quill.hpp"
-
-std::string data = R"(
-{
-    position: xyz(1.0, 2.0, 3.0),
-    tint: rgba(255, 0, 128, 255),
-    state: State::Idle,
-    boolean: false,
-    nullable: null,
-    string: ""
-}
-)";
 
 int main() {
     using namespace Ql;
 
-    const Quill quill = Quill::Parse(data);
-
-    bool correct = quill["position"].As<std::array<float, 3> >()[0] == 1.0;
-    assert(correct);
-
-    correct = quill["tint"].As<std::array<int, 4> >()[0] == 255;
-    assert(correct);
-
-    correct = quill["boolean"].As<bool>() == false;
-    assert(correct);
-
-    correct = quill["nullable"].IsNull();
-    assert(correct);
-
-    correct = quill["string"].As<std::string>().empty();
-    assert(correct);
-
-    std::string src = R"(
-{
-    health: HealthComponent {
-        current_hp: 100.0,
-        max_hp: 200.0,
-    },
-}
-)";
+    std::string src = R"({
+        health: HealthComponent {
+            current_hp: 100.0,
+            max_hp: 200.0,
+        },
+    })";
 
     Quill val = Quill::Parse(src);
     assert(val["health"]["current_hp"].As<float>() == 100.0f);

@@ -24,16 +24,45 @@ namespace Ql {
         std::string        buffer;
         std::vector<Token> tokens;
 
+        int  commentedLine = -1;
+        bool comment = false;
+        bool string = false;
+
         while (pos < src.size()) {
-            const char c = Advance();
+            char c = Advance();
+
+            if (c == '\"' && pos > 1 && src[pos - 2] != '\\') {
+                string = !string;
+            }
+
+            if (string) {
+                buffer += c;
+                continue;
+            }
+
+            if (c == '/' && src[pos] == '/') {
+                commentedLine = line;
+                Advance();
+                c = Advance();
+            }
+
+            if (c == '/' && src[pos] == '*') {
+                comment = true;
+                Advance();
+                c = Advance();
+            }
+
+            if (c == '*' && src[pos] == '/') {
+                comment = false;
+                Advance();
+                c = Advance();
+            }
+
+            if (line == commentedLine || comment) {
+                continue;
+            }
 
             const bool delimiter = c == '\n' || TokenizeDelimiter(c);
-
-            if (tokens.size() > 1 && tokens.back().type == TokenType::Colon && tokens[tokens.size() - 2].type ==
-                TokenType::Colon) {
-                tokens.resize(tokens.size() - 2);
-                tokens.push_back({.type = TokenType::DoubleColon, .value = "::", .line = line, .col = col});
-            }
 
             if (TokenizeString(Trim(buffer))) {
                 tokens.push_back(TokenizeString(Trim(buffer)).value());
@@ -103,14 +132,6 @@ namespace Ql {
 
         if (ch == ']') {
             return Token{.type = TokenType::RBracket, .value = "]", .line = line, .col = col};
-        }
-
-        if (ch == '(') {
-            return Token{.type = TokenType::LParen, .value = "(", .line = line, .col = col};
-        }
-
-        if (ch == ')') {
-            return Token{.type = TokenType::RParen, .value = ")", .line = line, .col = col};
         }
 
         if (ch == ',') {

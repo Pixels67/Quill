@@ -65,8 +65,6 @@ namespace Ql {
         template<typename T>
         T As() const;
 
-        Enum AsEnum() const { return {std::get<Enum>(node.value).type, std::get<Enum>(node.value).value}; }
-
         [[nodiscard]] bool IsNull() const { return std::holds_alternative<std::monostate>(node.value); }
         [[nodiscard]] bool IsStruct() const { return std::holds_alternative<Struct>(node.value); }
         [[nodiscard]] bool IsArray() const { return std::holds_alternative<Array>(node.value); }
@@ -98,72 +96,6 @@ namespace Ql {
     template<>
     inline bool Quill::As<bool>() const {
         return std::get<bool>(node.value);
-    }
-
-    template<>
-    inline std::array<float, 2> Quill::As<std::array<float, 2> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "xy");
-        return std::array{
-            Quill{args[0]}.As<float>(),
-            Quill{args[1]}.As<float>()
-        };
-    }
-
-    template<>
-    inline std::array<float, 3> Quill::As<std::array<float, 3> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "xyz");
-        return std::array{
-            Quill{args[0]}.As<float>(),
-            Quill{args[1]}.As<float>(),
-            Quill{args[2]}.As<float>()
-        };
-    }
-
-    template<>
-    inline std::array<float, 4> Quill::As<std::array<float, 4> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "xyzw");
-        return std::array{
-            Quill{args[0]}.As<float>(),
-            Quill{args[1]}.As<float>(),
-            Quill{args[2]}.As<float>(),
-            Quill{args[3]}.As<float>()
-        };
-    }
-
-    template<>
-    inline std::array<int, 2> Quill::As<std::array<int, 2> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "rg");
-        return std::array{
-            Quill{args[0]}.As<int>(),
-            Quill{args[1]}.As<int>()
-        };
-    }
-
-    template<>
-    inline std::array<int, 3> Quill::As<std::array<int, 3> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "rgb");
-        return std::array{
-            Quill{args[0]}.As<int>(),
-            Quill{args[1]}.As<int>(),
-            Quill{args[2]}.As<int>()
-        };
-    }
-
-    template<>
-    inline std::array<int, 4> Quill::As<std::array<int, 4> >() const {
-        const auto &[name, args] = std::get<Builtin>(node.value);
-        assert(name == "rgba");
-        return std::array{
-            Quill{args[0]}.As<int>(),
-            Quill{args[1]}.As<int>(),
-            Quill{args[2]}.As<int>(),
-            Quill{args[3]}.As<int>()
-        };
     }
 }
 
