@@ -8,7 +8,7 @@ your mom
 Hashmap keys can be anything as opposed to just strings and there are no
 unnecessary quotation marks everywhere. Trailing commas and comments are supported.
 Structs can be typed or untyped.
-```rust
+```json
 // Example Quill file
 /* Block comment */
 Entity {
@@ -50,6 +50,22 @@ Entity {
     empty_map: [:],
 }
 ```
+
+Integers can have the following formats:
+```js
++99, 42, 0, -17
+0xAF, 0o37, 0b1011
+```
+Floats can have the following formats:
+```js
++1.0, 3.1415, -0.01
+5e+22, 1e06, -2E-2
+6.626e-34
+inf, +inf, -inf
+nan, +nan, -nan
+```
+All strings are multi-line strings, though escape codes must be used regardless.
+Valid escape characters are `//`, `/"`, and `/n`.
 
 ### Library Usage
 ```cpp

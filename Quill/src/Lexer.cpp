@@ -1,6 +1,5 @@
 #include "Lexer.hpp"
 
-#include <iostream>
 #include <vector>
 
 namespace Ql {
@@ -20,104 +19,131 @@ namespace Ql {
         return str;
     }
 
+    bool IsDelimiter(const char c) {
+        return c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',' || c == ' ' || c == '\n';
+    }
+
     std::vector<Token> Lexer::Tokenize() {
-        std::string        buffer;
-        std::vector<Token> tokens;
+        std::vector<Token> tokenStrings;
 
-        int  commentedLine = -1;
-        bool comment = false;
         bool string = false;
+        bool comment = false;
 
-        while (pos < src.size()) {
-            char c = Advance();
+        std::string buffer;
 
-            if (c == '\"' && pos > 1 && src[pos - 2] != '\\') {
+        while (Current() != '\0') {
+            int col = currentCol;
+            int line = currentLine;
+
+            // Strings
+            if (Current() == '\"' && Peek(-1) != '\\') {
                 string = !string;
             }
 
             if (string) {
-                buffer += c;
+                buffer += Current();
+                Advance();
                 continue;
             }
 
-            if (c == '/' && src[pos] == '/') {
-                commentedLine = line;
-                Advance();
-                c = Advance();
+            // Comments
+            if (Current() == '/' && Peek(1) == '/') {
+                SkipLine();
             }
 
-            if (c == '/' && src[pos] == '*') {
+            if (Current() == '/' && Peek(1) == '*') {
                 comment = true;
-                Advance();
-                c = Advance();
             }
 
-            if (c == '*' && src[pos] == '/') {
+            if (Current() == '*' && Peek(1) == '/') {
                 comment = false;
-                Advance();
-                c = Advance();
+                Advance(2);
             }
 
-            if (line == commentedLine || comment) {
+            if (comment) {
+                Advance();
                 continue;
             }
 
-            const bool delimiter = c == '\n' || TokenizeDelimiter(c);
+            // Delimiters
+            if (IsDelimiter(Current())) {
+                if (!buffer.empty()) {
+                    int c = col - buffer.size() + 1;
+                    tokenStrings.push_back({.value = buffer, .line = line, .col = c});
+                    buffer.clear();
+                }
 
-            if (TokenizeString(Trim(buffer))) {
-                tokens.push_back(TokenizeString(Trim(buffer)).value());
-                buffer.clear();
+                if (Current() != ' ' && Current() != '\n') {
+                    std::string str;
+                    str.push_back(Current());
+                    tokenStrings.push_back({.value = str, .line = line, .col = col - 1});
+                }
+
+                Advance();
+                continue;
             }
 
-            if (delimiter) {
-                if (TokenizeInteger(Trim(buffer))) {
-                    tokens.push_back(TokenizeInteger(Trim(buffer)).value());
-                    buffer.clear();
-                }
+            // Everything else
+            buffer += Current();
+            Advance();
+        }
 
-                if (TokenizeFloat(Trim(buffer))) {
-                    tokens.push_back(TokenizeFloat(Trim(buffer)).value());
-                    buffer.clear();
-                }
+        std::vector<Token> tokens;
 
-                if (Trim(buffer) == "true" || Trim(buffer) == "false") {
-                    tokens.push_back({.type = TokenType::Bool, .value = Trim(buffer), .line = line, .col = col});
-                    buffer.clear();
-                }
-
-                if (Trim(buffer) == "null") {
-                    tokens.push_back({.type = TokenType::Null, .value = Trim(buffer), .line = line, .col = col});
-                    buffer.clear();
-                }
-            }
-
-            if (delimiter && !Trim(buffer).empty()) {
-                tokens.push_back({.type = TokenType::Ident, .value = Trim(buffer), .line = line, .col = col});
-                buffer.clear();
-            } else if (!delimiter) {
-                buffer.push_back(c);
-            }
-
-            if (TokenizeDelimiter(c)) {
-                tokens.push_back(TokenizeDelimiter(c).value());
+        for (const auto &token: tokenStrings) {
+            auto [type, str, line, col] = token;
+            if (str.size() == 1 && TokenizeDelimiter(str[0], line, col)) {
+                tokens.push_back(TokenizeDelimiter(str[0], line, col).value());
+            } else if (TokenizeInteger(str, line, col)) {
+                tokens.push_back(TokenizeInteger(str, line, col).value());
+            } else if (TokenizeFloat(str, line, col)) {
+                tokens.push_back(TokenizeFloat(str, line, col).value());
+            } else if (TokenizeString(str, line, col)) {
+                tokens.push_back(TokenizeString(str, line, col).value());
+            } else {
+                tokens.push_back({.type = TokenType::Ident, .value = str, .line = line, .col = col});
             }
         }
 
         return tokens;
     }
 
-    char Lexer::Advance() {
-        if (src[pos] == '\n') {
-            line++;
-        } else {
-            col++;
-        }
-
-        size_t p = pos++;
-        return src[p];
+    char Lexer::Current() const {
+        return src[pos];
     }
 
-    std::optional<Token> Lexer::TokenizeDelimiter(const char &ch) const {
+    char Lexer::Advance(const size_t offset) {
+        if (offset == 0) {
+            return Current();
+        }
+
+        if (src[pos] == '\n') {
+            currentLine++;
+            currentCol = 0;
+        } else {
+            currentCol++;
+        }
+
+        pos++;
+        return Advance(offset - 1);
+    }
+
+    char Lexer::Peek(const size_t offset) const {
+        if (pos + offset >= src.size() || pos + offset < 0) {
+            return '\0';
+        }
+
+        return src[pos + offset];
+    }
+
+    void Lexer::SkipLine() {
+        const int line = currentLine;
+        while (currentLine == line) {
+            Advance();
+        }
+    }
+
+    std::optional<Token> Lexer::TokenizeDelimiter(const char &ch, int line, int col) const {
         if (ch == '{') {
             return Token{.type = TokenType::LBrace, .value = "{", .line = line, .col = col};
         }
@@ -145,7 +171,7 @@ namespace Ql {
         return std::nullopt;
     }
 
-    std::optional<Token> Lexer::TokenizeString(const std::string &string) const {
+    std::optional<Token> Lexer::TokenizeString(const std::string &string, int line, int col) const {
         if (string.empty()) {
             return std::nullopt;
         }
@@ -156,7 +182,7 @@ namespace Ql {
 
         int quoteCount = 0;
         for (size_t i = 0; i < string.size(); i++) {
-            if (string[i] == '\"' && string[i - 1] != '\\') quoteCount++;
+            if (string[i] == '\"' && (i == 0 || string[i - 1] != '\\')) quoteCount++;
         }
 
         if (quoteCount != 2) {
@@ -169,8 +195,14 @@ namespace Ql {
 
         std::string str;
         for (size_t i = 1; i < string.size() - 1; i++) {
-            if (string[i] == '\\') {
-                str += string[i + 1];
+            if (string[i] == '\\' && string[i + 1] == '\"') {
+                str += '\"';
+                i++;
+            } else if (string[i] == '\\' && string[i + 1] == '\\') {
+                str += '\\';
+                i++;
+            } else if (string[i] == '\\' && string[i + 1] == 'n') {
+                str += '\n';
                 i++;
             } else {
                 str += string[i];
@@ -185,7 +217,7 @@ namespace Ql {
         };
     }
 
-    std::optional<Token> Lexer::TokenizeInteger(const std::string &string) const {
+    std::optional<Token> Lexer::TokenizeInteger(const std::string &string, int line, int col) const {
         if (string.empty()) {
             return std::nullopt;
         }
@@ -196,7 +228,7 @@ namespace Ql {
         std::string str = string;
 
         const bool hex = str.substr(0, 2) == "0x" && str.size() <= 18;
-        const bool oct = str.substr(0, 2) == "0c" && str.size() <= 34;
+        const bool oct = str.substr(0, 2) == "0o" && str.size() <= 34;
         const bool bin = str.substr(0, 2) == "0b" && str.size() <= 66;
         const bool dec = !hex && !oct && !bin;
 
@@ -227,7 +259,7 @@ namespace Ql {
         };
     }
 
-    std::optional<Token> Lexer::TokenizeFloat(const std::string &string) const {
+    std::optional<Token> Lexer::TokenizeFloat(const std::string &string, int line, int col) const {
         if (string.empty()) {
             return std::nullopt;
         }

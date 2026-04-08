@@ -1,6 +1,5 @@
 #ifndef QUILL_QUILL_HPP
 #define QUILL_QUILL_HPP
-#include <array>
 
 #include "QuillValue.hpp"
 
@@ -14,8 +13,8 @@ namespace Ql {
         explicit Quill(QuillValue node) : node(std::move(node)) {
         }
 
-        bool operator==(const Quill& other) const {
-            return std::visit([&]<typename T0, typename T1>(const T0& a, const T1& b) -> bool {
+        bool operator==(const Quill &other) const {
+            return std::visit([&]<typename T0, typename T1>(const T0 &a, const T1 &b) -> bool {
                 using A = std::decay_t<T0>;
                 using B = std::decay_t<T1>;
                 if constexpr (!std::is_same_v<A, B>) return false;
@@ -24,12 +23,25 @@ namespace Ql {
         }
 
         Quill operator[](const std::string &key) const {
-            const auto &[name, fields] = std::get<Struct>(node.value);
-            const auto  it = fields.find(key);
+            if (IsStruct()) {
+                const auto &[name, fields] = std::get<Struct>(node.value);
+                const auto  it = fields.find(key);
 
-            if (it == fields.end())
-                assert(false);
-            return Quill{it->second};
+                if (it == fields.end())
+                    assert(false);
+                return Quill{it->second};
+            }
+
+            if (IsMap()) {
+                const auto &[elements] = std::get<Map>(node.value);
+                for (const auto &[k, val]: elements) {
+                    if (key == std::get<std::string>(k.value)) {
+                        return Quill(val);
+                    }
+                }
+            }
+
+            assert(false);
         }
 
         Quill operator[](const Quill &key) const {

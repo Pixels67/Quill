@@ -13,6 +13,7 @@ add_library(
         Quill/src/Parser.hpp
         Quill/include/Quill.hpp
         Quill/src/Quill.cpp
+        Quill/src/QuillError.hpp
 )
 
 target_include_directories(Quill PUBLIC Quill/src Quill/include)
