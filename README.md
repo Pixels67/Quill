@@ -54,12 +54,12 @@ Entity {
 ```
 
 Integers can have the following formats:
-```c++
+```js
 +99, 42, 0, -17
 0xAF, 0o37, 0b1011
 ```
 Floats can have the following formats:
-```c++
+```js
 +1.0, 3.1415, -0.01
 5e+22, 1e06, -2E-2
 6.626e-34
@@ -71,20 +71,45 @@ Valid escape characters are `//`, `/"`, and `/n`.
 
 ### Library Usage
 ```c++
+#include <iostream>
+
 #include "Quill.hpp"
 
 int main() {
     using namespace Ql;
 
+    // Serialization
+    Quill val;
+    val["number"] = 500.0;
+    val["bool"] = false;
+
+    val["obj"] = Struct{};
+    val["obj"]["happy"] = true;
+
+    val["arr"] = Array{};
+    val["arr"].Push(4);
+    val["arr"].Push(2);
+
+    val["map"] = Map{};
+    val["map"]["A"] = "Automatic";
+    val["map"]["B"] = "Bear";
+
+    val["null"] = Null{};
+
+    std::cout << val.ToString() << '\n';
+
+    // Deserialization
     std::string src = R"({
         health: HealthComponent {
             current_hp: 100.0,
             max_hp: 200.0,
         },
     })";
-
-    Quill val = Quill::Parse(src);
+    
+    val = Quill::Parse(src);
+    val["health"]["f"] = 50.0f;
     assert(val["health"]["current_hp"].As<float>() == 100.0f);
+    assert(val["health"]["f"].As<float>() == 50.0f);
     assert(val["health"].TypeName() == "HealthComponent");
 
     src = R"({ tags: ["enemy", "boss", "undead"] })";

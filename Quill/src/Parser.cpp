@@ -47,7 +47,7 @@ namespace Ql {
             const std::string name = Consume().value;
 
             if (Current().type == TokenType::LBrace) {
-                return {ParseStruct(name), Current().line, Current().col};
+                return {ParseStruct(name), ValueType::Struct, Current().line, Current().col};
             }
 
             const std::string line = std::to_string(tokens[pos - 1].line);
@@ -55,14 +55,18 @@ namespace Ql {
             throw QuillError("Expected '{' after identifier '" + name + "' on " + line + ":" + col);
         }
 
-        if (Current().type == TokenType::LBrace) return {ParseStruct(""), Current().line, Current().col};
+        if (Current().type == TokenType::LBrace) return {
+            ParseStruct(""), ValueType::Struct, Current().line, Current().col
+        };
 
         if (Current().type == TokenType::LBracket) {
-            int       idx = 1;
+            int idx = 1;
             TokenType type = Peek(idx).type;
-            int       nesting = 0;
+            int nesting = 0;
             while (true) {
-                if (type == TokenType::Colon && nesting == 0) return {ParseMap(), Current().line, Current().col};
+                if (type == TokenType::Colon && nesting == 0) return {
+                    ParseMap(), ValueType::Map, Current().line, Current().col
+                };
                 if (type == TokenType::RBracket && nesting == 0) break;
 
                 if (type == TokenType::LBracket || type == TokenType::LBrace) nesting++;
@@ -74,7 +78,9 @@ namespace Ql {
             return {ParseArray()};
         }
 
-        if (Current().type == TokenType::String) return {Consume().value, Current().line, Current().col};
+        if (Current().type == TokenType::String) return {
+            Consume().value, ValueType::String, Current().line, Current().col
+        };
         if (Current().type == TokenType::Integer) {
             int base = 10;
             if (Current().value.substr(0, 2) == "0x") {
@@ -88,17 +94,23 @@ namespace Ql {
             }
 
             if (base == 10) {
-                return {std::stoll(Consume().value), Current().line, Current().col};
+                return {std::stoll(Consume().value), ValueType::Integer, Current().line, Current().col};
             }
 
-            return {std::stoll(Consume().value.substr(2), nullptr, base), Current().line, Current().col};
+            return {
+                std::stoll(Consume().value.substr(2), nullptr, base), ValueType::Integer, Current().line, Current().col
+            };
         }
 
-        if (Current().type == TokenType::Float) return {std::stod(Consume().value), Current().line, Current().col};
-        if (Current().type == TokenType::Bool) return {Consume().value == "true", Current().line, Current().col};
+        if (Current().type == TokenType::Float) return {
+            std::stod(Consume().value), ValueType::Float, Current().line, Current().col
+        };
+        if (Current().type == TokenType::Bool) return {
+            Consume().value == "true", ValueType::Bool, Current().line, Current().col
+        };
         if (Current().type == TokenType::Null) {
             Consume();
-            return {std::monostate{}, Current().line, Current().col};
+            return {std::monostate{}, ValueType::Null, Current().line, Current().col};
         };
 
         const std::string line = std::to_string(tokens[pos].line);
@@ -120,7 +132,7 @@ namespace Ql {
             std::string fieldName = Expect(TokenType::Ident).value;
             Expect(TokenType::Colon);
 
-            node.fields[fieldName] = ParseValue();
+            node[fieldName] = ParseValue();
 
             if (Current().type == TokenType::Comma) {
                 Consume();
@@ -128,8 +140,8 @@ namespace Ql {
                 Consume();
                 break;
             } else {
-                const std::string line = std::to_string(node.fields[fieldName].line);
-                const std::string col = std::to_string(node.fields[fieldName].col);
+                const std::string line = std::to_string(node[fieldName].line);
+                const std::string col = std::to_string(node[fieldName].col);
                 throw QuillError("Expected ',' or '}' after identifier '" + fieldName + "' on " + line + ":" + col);
             }
         }
@@ -139,6 +151,9 @@ namespace Ql {
 
     Array Parser::ParseArray() {
         Array node;
+
+        std::optional<ValueType> arrayType;
+
         Expect(TokenType::LBracket);
         while (true) {
             if (Current().type == TokenType::RBracket) {
@@ -146,7 +161,19 @@ namespace Ql {
                 break;
             }
 
-            node.elements.push_back(ParseValue());
+            QuillValue val = ParseValue();
+            if (!arrayType && val.type != ValueType::Null) {
+                arrayType = val.type;
+            } else if (val.type != arrayType && val.type != ValueType::Null) {
+                const std::string line = std::to_string(val.line);
+                const std::string col = std::to_string(val.col);
+                throw QuillError(
+                    "Unexpected type for array element " + std::to_string(node.elements.size())
+                    + " on " + line + ":" + col
+                );
+            }
+
+            node.elements.push_back(val);
 
             if (Current().type == TokenType::Comma) {
                 Consume();
@@ -169,6 +196,8 @@ namespace Ql {
     Map Parser::ParseMap() {
         Map node;
 
+        std::optional<ValueType> keyType;
+
         Expect(TokenType::LBracket);
         while (true) {
             if (Current().type == TokenType::RBracket) {
@@ -183,6 +212,14 @@ namespace Ql {
             }
 
             QuillValue key = ParseValue();
+
+            if (!keyType) {
+                keyType = key.type;
+            } else if (key.type != keyType) {
+                const std::string line = std::to_string(key.line);
+                const std::string col = std::to_string(key.col);
+                throw QuillError("Unexpected type for map key on " + line + ":" + col);
+            }
 
             Expect(TokenType::Colon);
 

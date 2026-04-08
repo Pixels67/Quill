@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "Quill.hpp"
 
 int main() {
@@ -10,8 +12,29 @@ int main() {
         },
     })";
 
-    Quill val = Quill::Parse(src);
+    Quill val;
+    val["number"] = 500.0;
+    val["bool"] = false;
+
+    val["obj"] = Struct{};
+    val["obj"]["happy"] = true;
+
+    val["arr"] = Array{};
+    val["arr"].Push(4);
+    val["arr"].Push(2);
+
+    val["map"] = Map{};
+    val["map"]["A"] = "Automatic";
+    val["map"]["B"] = "Bear";
+
+    val["null"] = Null{};
+
+    std::cout << val.ToString() << '\n';
+
+    val = Quill::Parse(src);
+    val["health"]["f"] = 50.0f;
     assert(val["health"]["current_hp"].As<float>() == 100.0f);
+    assert(val["health"]["f"].As<float>() == 50.0f);
     assert(val["health"].TypeName() == "HealthComponent");
 
     src = R"({ tags: ["enemy", "boss", "undead"] })";

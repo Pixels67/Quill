@@ -4,78 +4,58 @@
 #include "QuillValue.hpp"
 
 namespace Ql {
+    using Null = std::monostate;
+
     class Quill {
         QuillValue node;
 
     public:
         static Quill Parse(const std::string &data);
 
+        Quill() = default;
+
         explicit Quill(QuillValue node) : node(std::move(node)) {
         }
 
-        bool operator==(const Quill &other) const {
-            return std::visit([&]<typename T0, typename T1>(const T0 &a, const T1 &b) -> bool {
-                using A = std::decay_t<T0>;
-                using B = std::decay_t<T1>;
-                if constexpr (!std::is_same_v<A, B>) return false;
-                else return a == b;
-            }, node.value, other.node.value);
-        }
+        bool operator==(const Quill &other) const;
 
-        Quill operator[](const std::string &key) const {
-            if (IsStruct()) {
-                const auto &[name, fields] = std::get<Struct>(node.value);
-                const auto  it = fields.find(key);
+        Quill operator[](const std::string &key) const { return Get(key); }
+        Quill operator[](const Quill &key) const { return Get(key); }
+        Quill operator[](const size_t index) const { return Get(index); }
 
-                if (it == fields.end())
-                    assert(false);
-                return Quill{it->second};
-            }
-
-            if (IsMap()) {
-                const auto &[elements] = std::get<Map>(node.value);
-                for (const auto &[k, val]: elements) {
-                    if (key == std::get<std::string>(k.value)) {
-                        return Quill(val);
-                    }
-                }
-            }
-
-            assert(false);
-        }
-
-        Quill operator[](const Quill &key) const {
-            const auto &[elements] = std::get<Map>(node.value);
-            for (const auto &[k, val]: elements) {
-                if (key == Quill(k)) {
-                    return Quill(val);
-                }
-            }
-
-            assert(false);
-        }
-
-        Quill operator[](const size_t index) const {
-            if (IsArray()) {
-                const auto &[elements] = std::get<Array>(node.value);
-                return Quill{elements.at(index)};
-            }
-
-            if (IsMap()) {
-                const auto &[elements] = std::get<Map>(node.value);
-                for (const auto &[k, val]: elements) {
-                    if (index == std::get<int64_t>(k.value)) {
-                        return Quill(val);
-                    }
-                }
-            }
-
-            assert(false);
-        }
-
+        Quill &operator[](const std::string &key) { return GetMut(key); }
+        Quill &operator[](const Quill &key) { return GetMut(key); }
+        Quill &operator[](const size_t index) { return GetMut(index); }
 
         template<typename T>
-        T As() const;
+        Quill &operator=(const T &value) {
+            node.value = value;
+            return *this;
+        }
+
+        [[nodiscard]] bool Contains(const std::string &key) const;
+        [[nodiscard]] bool Contains(const Quill &key) const;
+        [[nodiscard]] bool Contains(const size_t &index) const;
+
+        [[nodiscard]] Quill Get(const std::string &key) const;
+        [[nodiscard]] Quill Get(const Quill &key) const;
+        [[nodiscard]] Quill Get(size_t index) const;
+
+        Quill &GetMut(const std::string &key);
+        Quill &GetMut(const Quill &key);
+        Quill &GetMut(size_t index);
+
+        template<typename T>
+        T As() const {
+        }
+
+        template<typename T>
+        void Push(T value) {
+            assert(IsArray());
+            std::get<Array>(node.value).Push(QuillValue{.value = value, .type = GetValueType<T>()});
+        }
+
+        Quill Pop();
 
         [[nodiscard]] bool IsNull() const { return std::holds_alternative<std::monostate>(node.value); }
         [[nodiscard]] bool IsStruct() const { return std::holds_alternative<Struct>(node.value); }
@@ -86,6 +66,8 @@ namespace Ql {
             if (IsStruct()) return std::get<Struct>(node.value).name;
             return "";
         }
+
+        [[nodiscard]] std::string ToString(size_t spaces = 2, int floatPrecision = 8, size_t indent = 0) const;
     };
 
     template<>

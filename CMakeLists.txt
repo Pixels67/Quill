@@ -14,6 +14,7 @@ add_library(
         Quill/include/Quill.hpp
         Quill/src/Quill.cpp
         Quill/src/QuillError.hpp
+        Quill/src/QuillValue.cpp
 )
 
 target_include_directories(Quill PUBLIC Quill/src Quill/include)
