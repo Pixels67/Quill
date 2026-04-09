@@ -9,7 +9,7 @@ Hashmap keys can be anything as opposed to just strings and there are no
 unnecessary quotation marks everywhere. Trailing commas and comments are supported.
 Structs can be typed or untyped.  
   
-Extension should be .qll.
+File extension should be QL or QUILL.
 ```c++
 // Example Quill file
 /* Block comment */
