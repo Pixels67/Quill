@@ -2,7 +2,7 @@
 Data serialization format meant for [Flock](https://github.com/Pixels67/Flock).
 
 ### Why?
-your mom
+I was bored at 2AM, just use [JSON5](https://json5.org/).
 
 ### How does it work?
 Hashmap keys can be anything as opposed to just strings and there are no
@@ -61,8 +61,7 @@ Integers can have the following formats:
 Floats can have the following formats:
 ```js
 +1.0, 3.1415, -0.01
-5e+22, 1e06, -2E-2
-6.626e-34
+5e+22, 1e06, -2E-2, 6.626e-34
 inf, +inf, -inf
 nan, +nan, -nan
 ```
