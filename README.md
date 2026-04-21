@@ -66,7 +66,7 @@ inf, +inf, -inf
 nan, +nan, -nan
 ```
 All strings are multi-line strings, though escape codes must be used regardless.
-Valid escape characters are `//`, `/"`, and `/n`.
+Valid escape characters are `\\`, `\"`, and `\n`.
 
 ### Library Usage
 ```c++
